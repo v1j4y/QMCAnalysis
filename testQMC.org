@@ -1,0 +1,78 @@
+#+title:     Code Testing QMCPedagogique
+#+author:    vijay gopal chilkuri
+#+email:     chilkuri@chilkuri-MacBookPro
+#+date: <2022-11-05 sam.>
+
+* Setup
+#+begin_src  julia
+using Plots
+using TimerOutputs
+using QMCPedagogique: DMC_fermionic_p, Context
+using BlockingMC: applyBlocking
+#+end_src
+
+* Run DMC
+#+begin_src  julia
+nwalkermax = 10^6
+nwalkermin = 100
+ζ = 0.0005
+nb = 17
+nruns=1
+nsteps=(1 << nb) + 1
+stepsize=5
+t=-1.0
+U=1.0
+τ=0.00005
+nadvance=1
+norb=8
+nalpha=4
+norb2=norb*norb
+ET= -2.00
+ET= -6.00
+#ET= -8.00
+#ET= -12.50
+#ET= -18.70
+#ET= -19.70
+#ET= -31.00
+dimH=4000
+minGrowthRate=10^8
+to = TimerOutput()
+nthreads = 4
+ninitdets = 1
+ctxtlist = Context{200000, 1, nthreads}();
+ndimmax = 70000
+etlist    = zeros(Float64,nruns,nsteps);
+eprojlist = zeros(Float64,nruns,nsteps);
+nwlist    = zeros(Int64,nruns,nsteps);
+
+@time etlist,eprojlist,nwlist,dictmain=DMC_fermionic_p(t,U,ET,τ,stepsize,ζ,nruns,nsteps,nwalkermax,nwalkermin,minGrowthRate,norb,nalpha,nadvance,ctxtlist,to,nthreads,ninitdets,ndimmax,etlist,eprojlist,nwlist);
+
+
+#+end_src
+
+* Blocking analysis
+#+begin_src  julia
+etlist[end] = etlist[end-1]
+nb = 17
+npoints = 1 << nb
+varlist, varlisterror = applyBlocking(npoints, nb, etlist)
+
+# Plot
+plt2=plot(1:nb-1,varlist,
+     yerror=varlisterror,
+     frame=true)
+
+#savefig(plt2, "/tmp/tmp.png");
+mean(etlist[end-npoints+1:end])
+idvar = 14
+measurement(mean(etlist[end-npoints+1:end]), varlist[idvar])
+measurement(varlist[idvar], varlisterror[idvar])
+mean(etlist[end-npoints+1:end]) - E20
+E4 = -3.57536562044747
+E8 = -7.694833200092822
+E10 = -9.76627472564246
+E14 = -13.916735940339692
+E20 = -20.15043424636235
+
+#+end_src
+* Plots
